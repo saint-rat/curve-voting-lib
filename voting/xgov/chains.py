@@ -35,42 +35,42 @@ GNOSIS = Chain(
     id=100,
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
-    relayer="0xe0A1D8C3d243789EC6853b0d00903E70fded32d0",
+    relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
 )
 
 CORN = Chain(
     id=1001,
-    rpc=RPC_NOT_SET,
+    rpc="https://maizenet-rpc.usecorn.com",
     broadcaster=bd.STORAGE_PROOFS,
-    relayer="0x5bcA7dDF1bcccB2eE8e46c56bfc9d3CDC77262bC",
+    relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
 )
 
 INK = Chain(
     id=200,
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
-    relayer="0x13DFF1809D1E9ddf9Ac901F47817B7F45220A846",
+    relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
 )
 
 TAC = Chain(
     id=2008,
-    rpc=RPC_NOT_SET,
+    rpc="https://rpc.tac.build",
     broadcaster=bd.STORAGE_PROOFS,
-    relayer="0x5bcA7dDF1bcccB2eE8e46c56bfc9d3CDC77262bC",
+    relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
 )
 
 FANTOM = Chain(
     id=250,
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
-    relayer="0xc0b338DA0fDD43Dc48539837594cf6363795FEeA",
+    relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
 )
 
 POLYGON = Chain(
     id=137,
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
-    relayer="0x74d6aABD6197E83d963F0B48be9C034F93E8E66d",
+    relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
 )
 
 SONIC = Chain(
@@ -82,72 +82,79 @@ SONIC = Chain(
 
 XDC = Chain(
     id=50,
-    rpc=RPC_NOT_SET,
+    rpc="https://rpc.xdc.org",
     broadcaster=bd.STORAGE_PROOFS,
-    relayer="0x97aDC08FA1D849D2C48C5dcC1DaB568B169b0267",
+    relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
 )
 
 BSC = Chain(
     id=56,
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
-    relayer="0x3B519ae13D7CeB72CC922815f5dAaD741aD5087B",
+    relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
 )
 
 MOONBEAM = Chain(
     id=1284,
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
-    relayer="0x3c0a405E914337139992625D5100Ea141a9C4d11",
+    relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
 )
 
 HYPERLIQUID = Chain(
     id=998,
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
-    relayer="0x5bcA7dDF1bcccB2eE8e46c56bfc9d3CDC77262bC",
+    relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
 )
 
 KAVA = Chain(
     id=2222,
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
-    relayer="0x6a2691068C7CbdA03292Ba0f9c77A25F658bAeF5",
+    relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
 )
 
 CELO = Chain(
     id=42220,
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
-    relayer="0x3c0a405E914337139992625D5100Ea141a9C4d11",
+    relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
 )
 
 ETHERLINK = Chain(
     id=42793,
-    rpc=RPC_NOT_SET,
+    rpc="https://node.mainnet.etherlink.com",
     broadcaster=bd.STORAGE_PROOFS,
-    relayer="0xC772063cE3e622B458B706Dd2e36309418A1aE42",
+    relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
 )
 
 AVALANCHE = Chain(
     id=43114,
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
-    relayer="0xC6452F058fF4bb248D852C7b5f0E8753B8DbAbda",
+    relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
 )
 
 AURORA = Chain(
     id=1313161554,
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
-    relayer="0x3c0a405E914337139992625D5100Ea141a9C4d11",
+    relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
 )
 
 PLUME = Chain(
     id=161221135,
-    rpc=RPC_NOT_SET,
+    rpc="https://rpc.plume.org",
     broadcaster=bd.STORAGE_PROOFS,
-    relayer="0x5bcA7dDF1bcccB2eE8e46c56bfc9d3CDC77262bC",
+    relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
+)
+
+PLASMA = Chain(
+    id=9745,
+    rpc="https://rpc.plasma.to",
+    broadcaster=bd.STORAGE_PROOFS,
+    relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
 )
 
 
