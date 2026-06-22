@@ -5,10 +5,12 @@ import pytest
 
 from voting import OWNERSHIP, abi
 from voting.create_vote import (
+    EMPTY_IPFS_URI,
     _XGovPreview,
     _capture_call,
     _format_value,
     _generate_preview,
+    _print_vote_transaction,
 )
 from voting.xgov.chains import Chain, OPTIMISM
 
@@ -162,3 +164,26 @@ def test_undecodable_calldata_falls_back_to_hex():
     assert call.inputs[0].name == "calldata"
     assert call.inputs[0].value == "1234"
 
+
+def test_vote_transaction_prints_exact_target_and_calldata(capsys):
+    voting = abi.voting.at(OWNERSHIP.voting, nowarn=True)
+    evm_script = bytes.fromhex("00000001")
+    metadata = "ipfs:bafy-test"
+    expected_calldata = voting.newVote.prepare_calldata(
+        evm_script,
+        metadata,
+        False,
+        False,
+    )
+
+    _print_vote_transaction(voting, evm_script, metadata)
+    output = capsys.readouterr().out
+
+    assert "Chain: Ethereum (1)" in output
+    assert f"To: {OWNERSHIP.voting}" in output
+    assert "Value: 0" in output
+    assert f"Data: 0x{expected_calldata.hex()}" in output
+
+
+def test_empty_ipfs_uri_is_a_valid_metadata_placeholder():
+    assert EMPTY_IPFS_URI == "ipfs:"

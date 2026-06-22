@@ -39,6 +39,15 @@ CONFIGURATOR_ABI = boa.loads_abi(
                 ],
                 "outputs": [],
             },
+            {   
+                "inputs": [
+                    {"name":"_controller","type":"address"},{"name":"_borrow_cap","type":"uint256"}
+                ],
+                "name":"set_borrow_cap",
+                "outputs":[],
+                "stateMutability":"nonpayable",
+                "type":"function"
+            }
         ]
     ),
 )
@@ -115,7 +124,6 @@ def main():
                 assert controller.admin_percentage() == NEW_ADMIN_PERCENTAGE, (
                     f"{name}: admin percentage was not updated to 10%"
                 )
-
 
 if __name__ == "__main__":
     main()

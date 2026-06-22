@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Curve Vote Calldata Map</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1020;
+      --panel: #131a2d;
+      --panel-2: #182138;
+      --text: #e8ecf5;
+      --muted: #9da9c3;
+      --border: #2b3652;
+      --selector: #ffca63;
+      --offset: #73d0ff;
+      --address: #a6e3a1;
+      --length: #cba6f7;
+      --value: #f38ba8;
+      --gas: #fab387;
+      --metadata: #89dceb;
+      --boolean: #94e2d5;
+      --padding: #66708a;
+      --script: #f9e2af;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top left, #182242 0, var(--bg) 42%);
+      color: var(--text);
+      font: 15px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(1500px, calc(100% - 32px));
+      margin: 28px auto 80px;
+    }
+
+    h1, h2 { margin: 0; }
+    h1 { font-size: clamp(24px, 4vw, 40px); }
+    h2 { font-size: 18px; }
+
+    .subtitle, .hint { color: var(--muted); }
+    .subtitle { margin: 8px 0 24px; }
+    .hint { margin: 8px 0 0; font-size: 13px; }
+
+    .panel {
+      background: color-mix(in srgb, var(--panel) 94%, transparent);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 18px 50px rgb(0 0 0 / 24%);
+      padding: 18px;
+      margin-top: 16px;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    button {
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    button:hover { border-color: var(--offset); }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px 14px;
+      margin: 12px 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend span::before {
+      content: "";
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      border-radius: 2px;
+      margin-right: 5px;
+      background: var(--swatch);
+    }
+
+    .hex-box {
+      max-height: 58vh;
+      overflow: auto;
+      background: #080c18;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .hex-stream {
+      margin: 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font: 13px/1.85 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      letter-spacing: .025em;
+    }
+
+    .prefix { color: var(--muted); }
+
+    .byte-range {
+      color: var(--range-color);
+      border-bottom: 2px solid color-mix(in srgb, var(--range-color) 70%, transparent);
+      border-radius: 2px;
+      cursor: help;
+      transition: background .12s ease, color .12s ease;
+    }
+
+    .byte-range:hover,
+    .byte-range.active {
+      color: #08101e;
+      background: var(--range-color);
+      outline: 2px solid color-mix(in srgb, var(--range-color) 65%, white);
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .summary-card {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 13px;
+    }
+
+    .summary-card strong { color: var(--selector); }
+    .summary-card code { color: var(--address); overflow-wrap: anywhere; }
+    .summary-card dl { margin: 10px 0 0; }
+    .summary-card dt { color: var(--muted); font-size: 12px; }
+    .summary-card dd { margin: 1px 0 8px; }
+
+    #tooltip {
+      position: fixed;
+      z-index: 20;
+      display: none;
+      width: min(460px, calc(100vw - 24px));
+      background: #202a44;
+      border: 1px solid #53617f;
+      border-radius: 10px;
+      box-shadow: 0 14px 38px rgb(0 0 0 / 45%);
+      padding: 12px 14px;
+      pointer-events: none;
+    }
+
+    #tooltip h3 { margin: 0 0 5px; font-size: 15px; }
+    #tooltip .value { color: var(--text); overflow-wrap: anywhere; }
+    #tooltip .detail, #tooltip .offset { color: var(--muted); font-size: 12px; }
+    #tooltip .offset { margin-top: 7px; }
+
+    .error {
+      color: #ffb4b4;
+      background: #421e2a;
+      border: 1px solid #913e56;
+      padding: 12px;
+      border-radius: 8px;
+    }
+
+    @media (max-width: 700px) {
+      main { width: min(100% - 18px, 1500px); margin-top: 14px; }
+      .panel { padding: 12px; }
+      .toolbar { align-items: flex-start; flex-direction: column; }
+      .hex-stream { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Curve vote calldata map</h1>
+  <p class="subtitle">
+    Offline byte map for <code>newVote(bytes,string,bool,bool)</code>. Hover a colored range to see its meaning;
+    click a range to keep its tooltip open.
+  </p>
+
+  <section class="panel">
+    <div class="toolbar">
+      <div>
+        <h2>Complete transaction calldata</h2>
+        <p class="hint" id="byte-count"></p>
+      </div>
+      <button id="copy" type="button">Copy calldata</button>
+    </div>
+
+    <div class="legend">
+      <span style="--swatch:var(--selector)">Function selector</span>
+      <span style="--swatch:var(--offset)">ABI offset</span>
+      <span style="--swatch:var(--address)">Address</span>
+      <span style="--swatch:var(--length)">Length/count</span>
+      <span style="--swatch:var(--value)">Parameter value</span>
+      <span style="--swatch:var(--gas)">Gas limit</span>
+      <span style="--swatch:var(--metadata)">IPFS metadata</span>
+      <span style="--swatch:var(--boolean)">Boolean</span>
+      <span style="--swatch:var(--padding)">ABI padding</span>
+      <span style="--swatch:var(--script)">Aragon script</span>
+    </div>
+
+    <div class="hex-box">
+      <pre class="hex-stream" id="hex"><span class="prefix">0x</span></pre>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Decoded Optimism messages</h2>
+    <div class="summary-grid" id="summaries"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Execution path</h2>
+    <p id="execution-path" class="hint"></p>
+  </section>
+</main>
+
+<div id="tooltip" role="tooltip">
+  <h3></h3>
+  <div class="value"></div>
+  <div class="detail"></div>
+  <div class="offset"></div>
+</div>
+
+<script>
+  const CALLDATA = "0xf4b00513000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000004600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003c00000000140907540d8a6c65c637785e8f8b742ae6b0b9968000003a4b61d27f60000000000000000000000008e1e5001c7b8920196c7e3edf2bcf47b2b6153ff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000304be94553e00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000036c3d00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000012000000000000000000000000000000000000000000000000000000000000001e0000000000000000000000000d36c590531caf5f620c57faf5827ce8e7f6e5bec000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000449f2b79d6000000000000000000000000745422bf49f3f6e4a8e12e4abd19339e7910f8c9000000000000000000000000000000000000000000000000016345785d8a000000000000000000000000000000000000000000000000000000000000000000000000000000000000d36c590531caf5f620c57faf5827ce8e7f6e5bec000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000449f2b79d60000000000000000000000009fc15ac3ef97093832f49b7997a58e29b49c56de000000000000000000000000000000000000000000000000016345785d8a000000000000000000000000000000000000000000000000000000000000000000000000000000000000d36c590531caf5f620c57faf5827ce8e7f6e5bec000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000449f2b79d6000000000000000000000000b5ec7a3d591877a66be4f3eafdc4205e98a1bcaa000000000000000000000000000000000000000000000000016345785d8a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005697066733a000000000000000000000000000000000000000000000000000000";
+
+  const COLORS = {
+    selector: "var(--selector)", offset: "var(--offset)", address: "var(--address)",
+    length: "var(--length)", value: "var(--value)", gas: "var(--gas)",
+    metadata: "var(--metadata)", boolean: "var(--boolean)", padding: "var(--padding)",
+    script: "var(--script)"
+  };
+
+  const CONTROLLERS = {
+    "745422bf49f3f6e4a8e12e4abd19339e7910f8c9": ["wstETH/WETH", 18, "WETH"],
+    "9fc15ac3ef97093832f49b7997a58e29b49c56de": ["WBTC/USDC", 6, "USDC"],
+    "b5ec7a3d591877a66be4f3eafdc4205e98a1bcaa": ["wstETH/USDC", 6, "USDC"]
+  };
+
+  const hex = CALLDATA.slice(2).toLowerCase();
+  const byteLength = hex.length / 2;
+  const segments = [];
+  const summaries = [];
+
+  function sliceHex(start, length) { return hex.slice(start * 2, (start + length) * 2); }
+  function bigintAt(start, length = 32) { return BigInt("0x" + sliceHex(start, length)); }
+  function numberAt(start, length = 32) {
+    const value = bigintAt(start, length);
+    if (value > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("Integer exceeds JavaScript safe range");
+    return Number(value);
+  }
+  function addressWord(start) { return "0x" + sliceHex(start + 12, 20); }
+  function address20(start) { return "0x" + sliceHex(start, 20); }
+  function round32(value) { return Math.ceil(value / 32) * 32; }
+  function ascii(start, length) {
+    let result = "";
+    for (let i = 0; i < length; i++) result += String.fromCharCode(parseInt(sliceHex(start + i, 1), 16));
+    return result;
+  }
+  function units(value, decimals) {
+    const scale = 10n ** BigInt(decimals);
+    const whole = value / scale;
+    const remainder = value % scale;
+    if (remainder === 0n) return whole.toLocaleString("en-US");
+    return whole.toLocaleString("en-US") + "." + remainder.toString().padStart(decimals, "0").replace(/0+$/, "");
+  }
+  function add(start, length, kind, title, value, detail = "") {
+    if (length <= 0) return;
+    segments.push({ start, length, kind, title, value: String(value), detail });
+  }
+
+  function parseMessage(elementStart, index) {
+    const target = addressWord(elementStart);
+    const dataOffset = numberAt(elementStart + 32);
+    const lengthAt = elementStart + dataOffset;
+    const dataLength = numberAt(lengthAt);
+    const dataStart = lengthAt + 32;
+    const method = sliceHex(dataStart, 4);
+    const controller = addressWord(dataStart + 4);
+    const parameter = bigintAt(dataStart + 36);
+    const market = CONTROLLERS[controller.slice(2)] || ["Unknown controller", 18, "units"];
+
+    add(elementStart, 32, "address", `Message ${index}: target`, target,
+      "Optimism target contract. All six messages call the Configurator.");
+    add(elementStart + 32, 32, "offset", `Message ${index}: bytes offset`, `0x${dataOffset.toString(16)}`,
+      "Offset from the start of this tuple to its dynamic calldata bytes.");
+    add(lengthAt, 32, "length", `Message ${index}: calldata length`, `${dataLength} bytes`);
+
+    let functionName;
+    let decodedValue;
+    if (method === "1d89f9bf") {
+      functionName = "set_borrow_cap(address,uint256)";
+      decodedValue = `${units(parameter, market[1])} ${market[2]}`;
+    } else if (method === "9f2b79d6") {
+      functionName = "set_admin_percentage(address,uint256)";
+      decodedValue = `${units(parameter, 16)}%`;
+    } else {
+      functionName = `Unknown selector 0x${method}`;
+      decodedValue = parameter.toString();
+    }
+
+    add(dataStart, 4, "selector", `Message ${index}: function selector`, `0x${method}`,
+      functionName);
+    add(dataStart + 4, 32, "address", `Message ${index}: controller`, controller, market[0]);
+    add(dataStart + 36, 32, "value", `Message ${index}: parameter value`, parameter.toString(), decodedValue);
+
+    const paddedEnd = dataStart + round32(dataLength);
+    add(dataStart + dataLength, paddedEnd - (dataStart + dataLength), "padding",
+      `Message ${index}: bytes padding`, `${paddedEnd - (dataStart + dataLength)} zero bytes`);
+
+    summaries.push({ index, target, controller, market: market[0], functionName, raw: parameter.toString(), decodedValue });
+    return paddedEnd;
+  }
+
+  function parseBroadcaster(start, length) {
+    const end = start + length;
+    const method = sliceHex(start, 4);
+    const base = start + 4;
+    const messagesOffset = numberAt(base);
+    const gasLimit = bigintAt(base + 32);
+    const arrayStart = base + messagesOffset;
+    const count = numberAt(arrayStart);
+    const offsetsStart = arrayStart + 32;
+
+    add(start, 4, "selector", "Optimism broadcaster selector", `0x${method}`,
+      "broadcast((address,bytes)[],uint32)");
+    add(base, 32, "offset", "Messages array offset", `0x${messagesOffset.toString(16)}`,
+      "Offset from the broadcaster ABI arguments to the dynamic messages array.");
+    add(base + 32, 32, "gas", "Optimism gas limit", gasLimit.toString(),
+      "L2 gas supplied for relaying and executing the message batch.");
+    add(arrayStart, 32, "length", "Message count", count,
+      "Number of (target, calldata) tuples in this broadcast.");
+
+    const elementStarts = [];
+    for (let i = 0; i < count; i++) {
+      const relative = numberAt(offsetsStart + i * 32);
+      add(offsetsStart + i * 32, 32, "offset", `Message ${i + 1}: tuple offset`, `0x${relative.toString(16)}`,
+        "Offset relative to the tuple-offset area immediately after the array length.");
+      elementStarts.push(offsetsStart + relative);
+    }
+
+    let consumed = offsetsStart + count * 32;
+    for (let i = 0; i < elementStarts.length; i++) {
+      if (elementStarts[i] > consumed) add(consumed, elementStarts[i] - consumed, "padding", "Array gap", "Zero bytes");
+      consumed = parseMessage(elementStarts[i], i + 1);
+    }
+    if (consumed < end) add(consumed, end - consumed, "padding", "Broadcaster trailing data", `${end - consumed} bytes`);
+
+    return { gasLimit, count };
+  }
+
+  function parseAgent(start, length) {
+    const end = start + length;
+    const method = sliceHex(start, 4);
+    const base = start + 4;
+    const broadcaster = addressWord(base);
+    const ethValue = bigintAt(base + 32);
+    const dataOffset = numberAt(base + 64);
+    const lengthAt = base + dataOffset;
+    const innerLength = numberAt(lengthAt);
+    const innerStart = lengthAt + 32;
+
+    add(start, 4, "selector", "Ownership Agent selector", `0x${method}`,
+      "execute(address,uint256,bytes)");
+    add(base, 32, "address", "Broadcaster address", broadcaster,
+      "Ethereum Optimism broadcaster called by the Curve ownership agent.");
+    add(base + 32, 32, "value", "Inner ETH value", ethValue.toString(),
+      "ETH forwarded from the ownership agent to the broadcaster.");
+    add(base + 64, 32, "offset", "Broadcaster calldata offset", `0x${dataOffset.toString(16)}`);
+    add(lengthAt, 32, "length", "Broadcaster calldata length", `${innerLength} bytes`);
+    const broadcast = parseBroadcaster(innerStart, innerLength);
+
+    const paddedEnd = innerStart + round32(innerLength);
+    add(innerStart + innerLength, paddedEnd - (innerStart + innerLength), "padding",
+      "Agent dynamic-bytes padding", `${paddedEnd - (innerStart + innerLength)} zero bytes`);
+    if (paddedEnd !== end) throw new Error(`Agent record length mismatch: expected ${end}, consumed ${paddedEnd}`);
+    return { broadcaster, ...broadcast };
+  }
+
+  function parseScript(start, length) {
+    const end = start + length;
+    const scriptId = sliceHex(start, 4);
+    add(start, 4, "script", "Aragon script ID", `0x${scriptId}`,
+      "0x00000001 selects Aragon CallsScript encoding.");
+
+    let cursor = start + 4;
+    let record = 0;
+    let parsedAgent;
+    while (cursor < end) {
+      record++;
+      const agent = address20(cursor);
+      const callLength = numberAt(cursor + 20, 4);
+      add(cursor, 20, "address", `CallsScript record ${record}: target`, agent,
+        "Ethereum Curve ownership agent.");
+      add(cursor + 20, 4, "length", `CallsScript record ${record}: calldata length`, `${callLength} bytes`,
+        "Four-byte big-endian length, not an ABI word.");
+      parsedAgent = parseAgent(cursor + 24, callLength);
+      cursor += 24 + callLength;
+    }
+    if (cursor !== end) throw new Error("CallsScript did not end on a record boundary");
+    return parsedAgent;
+  }
+
+  function parseOuter() {
+    const selector = sliceHex(0, 4);
+    const base = 4;
+    const scriptOffset = numberAt(base);
+    const metadataOffset = numberAt(base + 32);
+    const castVote = bigintAt(base + 64);
+    const executesIfDecided = bigintAt(base + 96);
+    const scriptLengthAt = base + scriptOffset;
+    const scriptLength = numberAt(scriptLengthAt);
+    const scriptStart = scriptLengthAt + 32;
+    const metadataLengthAt = base + metadataOffset;
+    const metadataLength = numberAt(metadataLengthAt);
+    const metadataStart = metadataLengthAt + 32;
+    const metadata = ascii(metadataStart, metadataLength);
+
+    add(0, 4, "selector", "Voting function selector", `0x${selector}`,
+      "newVote(bytes,string,bool,bool)");
+    add(base, 32, "offset", "Execution script offset", `0x${scriptOffset.toString(16)}`,
+      "Offset from the start of newVote ABI arguments.");
+    add(base + 32, 32, "offset", "Metadata offset", `0x${metadataOffset.toString(16)}`,
+      "Offset from the start of newVote ABI arguments.");
+    add(base + 64, 32, "boolean", "Cast vote", Boolean(castVote),
+      "False: creating the proposal does not automatically cast a yes vote.");
+    add(base + 96, 32, "boolean", "Execute if decided", Boolean(executesIfDecided),
+      "False: proposal creation does not request immediate execution.");
+    add(scriptLengthAt, 32, "length", "Execution script length", `${scriptLength} bytes`);
+    const nested = parseScript(scriptStart, scriptLength);
+
+    const scriptPaddedEnd = scriptStart + round32(scriptLength);
+    add(scriptStart + scriptLength, scriptPaddedEnd - (scriptStart + scriptLength), "padding",
+      "Execution script padding", `${scriptPaddedEnd - (scriptStart + scriptLength)} zero bytes`);
+    if (scriptPaddedEnd < metadataLengthAt) add(scriptPaddedEnd, metadataLengthAt - scriptPaddedEnd, "padding", "Dynamic-data gap", "Zero bytes");
+
+    add(metadataLengthAt, 32, "length", "Metadata length", `${metadataLength} bytes`);
+    add(metadataStart, metadataLength, "metadata", "IPFS metadata URI", metadata,
+      "This URI is stored on the Ethereum vote.");
+    const metadataPaddedEnd = metadataStart + round32(metadataLength);
+    add(metadataStart + metadataLength, metadataPaddedEnd - (metadataStart + metadataLength), "padding",
+      "Metadata padding", `${metadataPaddedEnd - (metadataStart + metadataLength)} zero bytes`);
+    if (metadataPaddedEnd !== byteLength) throw new Error(`Outer calldata length mismatch: ${metadataPaddedEnd} vs ${byteLength}`);
+
+    return { selector, metadata, castVote, executesIfDecided, scriptLength, ...nested };
+  }
+
+  function renderHex() {
+    segments.sort((a, b) => a.start - b.start);
+    const host = document.getElementById("hex");
+    let cursor = 0;
+    for (const segment of segments) {
+      if (segment.start < cursor) throw new Error(`Overlapping segment at byte ${segment.start}`);
+      if (segment.start > cursor) addUnknown(host, cursor, segment.start - cursor);
+      const span = document.createElement("span");
+      span.className = "byte-range";
+      span.style.setProperty("--range-color", COLORS[segment.kind]);
+      span.textContent = sliceHex(segment.start, segment.length);
+      span.dataset.start = segment.start;
+      span.dataset.length = segment.length;
+      span._segment = segment;
+      bindTooltip(span);
+      host.appendChild(span);
+      cursor = segment.start + segment.length;
+    }
+    if (cursor < byteLength) addUnknown(host, cursor, byteLength - cursor);
+  }
+
+  function addUnknown(host, start, length) {
+    const span = document.createElement("span");
+    span.className = "byte-range";
+    span.style.setProperty("--range-color", "#ff6b6b");
+    span.textContent = sliceHex(start, length);
+    span._segment = { start, length, title: "Unparsed bytes", value: `0x${sliceHex(start, length)}`, detail: "The parser did not assign these bytes." };
+    bindTooltip(span);
+    host.appendChild(span);
+  }
+
+  const tooltip = document.getElementById("tooltip");
+  let pinned = null;
+  function bindTooltip(span) {
+    span.addEventListener("mouseenter", event => showTooltip(event, span));
+    span.addEventListener("mousemove", event => positionTooltip(event));
+    span.addEventListener("mouseleave", () => { if (pinned !== span) hideTooltip(); });
+    span.addEventListener("click", event => {
+      event.stopPropagation();
+      if (pinned) pinned.classList.remove("active");
+      pinned = pinned === span ? null : span;
+      if (pinned) {
+        pinned.classList.add("active");
+        showTooltip(event, pinned);
+      } else hideTooltip();
+    });
+  }
+  function showTooltip(event, span) {
+    const item = span._segment;
+    tooltip.querySelector("h3").textContent = item.title;
+    tooltip.querySelector(".value").textContent = item.value;
+    tooltip.querySelector(".detail").textContent = item.detail || "";
+    const end = item.start + item.length - 1;
+    tooltip.querySelector(".offset").textContent = `Bytes ${item.start}–${end} (0x${item.start.toString(16)}–0x${end.toString(16)}), ${item.length} byte${item.length === 1 ? "" : "s"}`;
+    tooltip.style.display = "block";
+    positionTooltip(event);
+  }
+  function positionTooltip(event) {
+    const margin = 14;
+    const rect = tooltip.getBoundingClientRect();
+    let left = event.clientX + 14;
+    let top = event.clientY + 14;
+    if (left + rect.width > window.innerWidth - margin) left = event.clientX - rect.width - 14;
+    if (top + rect.height > window.innerHeight - margin) top = event.clientY - rect.height - 14;
+    tooltip.style.left = `${Math.max(margin, left)}px`;
+    tooltip.style.top = `${Math.max(margin, top)}px`;
+  }
+  function hideTooltip() { tooltip.style.display = "none"; }
+  document.addEventListener("click", () => {
+    if (pinned) pinned.classList.remove("active");
+    pinned = null;
+    hideTooltip();
+  });
+
+  function renderSummaries() {
+    const host = document.getElementById("summaries");
+    for (const item of summaries) {
+      const card = document.createElement("article");
+      card.className = "summary-card";
+      card.innerHTML = `
+        <strong>Message ${item.index}: ${item.market}</strong>
+        <dl>
+          <dt>Function</dt><dd>${item.functionName}</dd>
+          <dt>Controller</dt><dd><code>${item.controller}</code></dd>
+          <dt>Decoded value</dt><dd>${item.decodedValue}</dd>
+          <dt>Raw uint256</dt><dd><code>${item.raw}</code></dd>
+          <dt>Target</dt><dd><code>${item.target}</code></dd>
+        </dl>`;
+      host.appendChild(card);
+    }
+  }
+
+  try {
+    const decoded = parseOuter();
+    renderHex();
+    renderSummaries();
+    document.getElementById("byte-count").textContent = `${byteLength.toLocaleString()} bytes · ${segments.length} annotated ranges`;
+    document.getElementById("execution-path").textContent =
+      `Ethereum ownership vote → CallsScript → ownership agent → ${decoded.broadcaster} → Optimism relay ` +
+      `(${decoded.gasLimit.toString()} gas) → ${decoded.count} Configurator calls. Metadata: ${decoded.metadata}`;
+  } catch (error) {
+    document.getElementById("hex").innerHTML = `<div class="error">Parse error: ${error.message}</div>`;
+    console.error(error);
+  }
+
+  document.getElementById("copy").addEventListener("click", async event => {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(CALLDATA);
+    } else {
+      const input = document.createElement("textarea");
+      input.value = CALLDATA;
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand("copy");
+      input.remove();
+    }
+    const button = event.currentTarget;
+    const original = button.textContent;
+    button.textContent = "Copied";
+    setTimeout(() => button.textContent = original, 1200);
+  });
+</script>
+</body>
+</html>

@@ -33,6 +33,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 load_dotenv()
 
+EMPTY_IPFS_URI = "ipfs:"
+
 
 @dataclass(frozen=True)
 class _DecodedInput:
@@ -129,6 +131,21 @@ def _format_inputs(call: _CapturedCall) -> str:
         for item in call.inputs
     ]
     return f"[{', '.join(inputs)}]"
+
+
+def _print_vote_transaction(voting, evm_script: bytes, metadata: str) -> None:
+    calldata = voting.newVote.prepare_calldata(
+        evm_script,
+        metadata,
+        False,
+        False,
+    )
+    print("Vote creation transaction")
+    print(" ├─ Chain: Ethereum (1)")
+    print(f" ├─ To: {voting.address}")
+    print(" ├─ Value: 0")
+    print(" ├─ Function: newVote(bytes,string,bool,bool)")
+    print(f" └─ Data: 0x{calldata.hex()}")
 
 
 def _pin_to_ipfs(description: str) -> str:
@@ -265,7 +282,13 @@ def _create_vote(
     logger.info(f"Voting contract loaded: {voting.address}")
 
     # Always sim regardless of whether the vote is going live or not
-    vote_id = voting.newVote(evm_script, "", False, False, sender=CONVEX_VOTER_PROXY)
+    vote_id = voting.newVote(
+        evm_script,
+        EMPTY_IPFS_URI,
+        False,
+        False,
+        sender=CONVEX_VOTER_PROXY,
+    )
 
     logger.info("Simulating vote creation")
     assert voting.canVote(vote_id, CONVEX_VOTER_PROXY)
@@ -278,9 +301,14 @@ def _create_vote(
     assert voting.canExecute(vote_id)
     voting.executeVote(vote_id)
 
-    # Live voting
+    vote_description_hash = EMPTY_IPFS_URI
     if live_env:
         vote_description_hash = _pin_to_ipfs(description)
+
+    _print_vote_transaction(voting, evm_script, vote_description_hash)
+
+    # Live voting
+    if live_env:
         if not live_env.set():
             return None
 
