@@ -1,7 +1,8 @@
 from __future__ import annotations
 from contextlib import contextmanager, ExitStack
+from dataclasses import dataclass, field
 import os
-from typing import Optional, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 import boa
 import logging
@@ -16,7 +17,14 @@ from datetime import datetime
 from voting import abi 
 from boa.util.abi import abi_decode
 
-from voting.context import use_dao, use_prepare_calldata, use_clean_prepare_calldata, get_dao
+from voting.context import (
+    get_dao,
+    get_xgov_preview,
+    use_clean_prepare_calldata,
+    use_dao,
+    use_prepare_calldata,
+    use_xgov_preview,
+)
 from voting.live_env import LiveEnv
 
 if TYPE_CHECKING:
@@ -24,6 +32,103 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 load_dotenv()
+
+
+@dataclass(frozen=True)
+class _DecodedInput:
+    type: str
+    name: str
+    value: Any
+
+
+@dataclass
+class _CapturedCall:
+    address: str
+    calldata: bytes
+    function_name: str
+    inputs: list[_DecodedInput]
+    xgov_calls: list[_CapturedCall] = field(default_factory=list)
+    xgov_chain_id: Optional[int] = None
+    xgov_chain_name: Optional[str] = None
+
+
+class _XGovPreview:
+    def __init__(self, chain: Chain, calls: list[_CapturedCall]):
+        self.chain = chain
+        self.calls = calls
+        self.cursor = 0
+
+    def attach(self, broadcaster_call: _CapturedCall) -> None:
+        messages = _extract_messages(broadcaster_call)
+        calls = self.calls[self.cursor : self.cursor + len(messages)]
+        if len(calls) != len(messages):
+            raise ValueError("Broadcaster contains more messages than xvote captured")
+
+        for (target, calldata), call in zip(messages, calls):
+            if target.lower() != call.address.lower() or calldata != bytes(call.calldata):
+                raise ValueError("Broadcaster messages do not match captured xvote calls")
+
+        broadcaster_call.xgov_calls = calls
+        broadcaster_call.xgov_chain_id = self.chain.id
+        broadcaster_call.xgov_chain_name = self.chain.name or f"Chain {self.chain.id}"
+        self.cursor += len(messages)
+
+    def assert_complete(self) -> None:
+        if self.cursor != len(self.calls):
+            raise ValueError("Not all captured xvote calls were broadcast")
+
+
+def _capture_call(func, calldata: bytes) -> _CapturedCall:
+    try:
+        decoded_values = abi_decode(func.signature, calldata[4:])
+        inputs = [
+            _DecodedInput(abi_input["type"], abi_input["name"], value)
+            for abi_input, value in zip(func._abi["inputs"], decoded_values)
+        ]
+    except Exception:
+        inputs = [_DecodedInput("bytes", "calldata", bytes(calldata).hex())]
+
+    return _CapturedCall(
+        address=str(func.contract.address),
+        calldata=calldata,
+        function_name=func.name,
+        inputs=inputs,
+    )
+
+
+def _extract_messages(call: _CapturedCall) -> list[tuple[str, bytes]]:
+    for decoded_input in call.inputs:
+        if (
+            decoded_input.name.lstrip("_") == "messages"
+            and decoded_input.type == "tuple[]"
+        ):
+            return [
+                (str(target), bytes(calldata))
+                for target, calldata in decoded_input.value
+            ]
+    raise ValueError("Could not find messages in broadcaster calldata")
+
+
+def _format_value(value):
+    if isinstance(value, str):
+        return str(value)
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        return bytes(value).hex()
+    if isinstance(value, tuple):
+        return tuple(_format_value(item) for item in value)
+    if isinstance(value, list):
+        return [_format_value(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _format_value(item) for key, item in value.items()}
+    return value
+
+
+def _format_inputs(call: _CapturedCall) -> str:
+    inputs = [
+        f"('{item.type}', '{item.name}', '{_format_value(item.value)}')"
+        for item in call.inputs
+    ]
+    return f"[{', '.join(inputs)}]"
 
 
 def _pin_to_ipfs(description: str) -> str:
@@ -94,8 +199,10 @@ def _prepare_evm_script(dao: DAOParameters, actions):
 
     evm_script = bytes.fromhex("00000001")
 
-    for address, calldata in actions:
-        agent_calldata = aragon_agent.execute.prepare_calldata(address, 0, calldata)
+    for action in actions:
+        agent_calldata = aragon_agent.execute.prepare_calldata(
+            action.address, 0, action.calldata
+        )
 
         length = bytes.fromhex(hex(len(agent_calldata.hex()) // 2)[2:].zfill(8))
         evm_script = (
@@ -111,47 +218,27 @@ def _prepare_evm_script(dao: DAOParameters, actions):
 
 
 def _generate_preview(dao: DAOParameters, actions):
-    """
-    Generates a human-readable preview of the transaction payload.
-    This version assumes all actions are valid and decodable.
-    """
-    def _format_value(value):
-        # Human-readable bytes
-        if isinstance(value, (bytes, bytearray, memoryview)):
-            return bytes(value).hex()
-
-        # Recursive
-        if isinstance(value, list):
-            return [_format_value(v) for v in value]
-        if isinstance(value, dict):
-            return {k: _format_value(v) for k, v in value.items()}
-        return value
-
+    """Generate a human-readable preview of direct and cross-chain calls."""
     preview_blocks = []
-    for address, calldata in actions:
-        
+    for action in actions:
         block = f"Call via agent ({dao.agent}):\n"
 
-        # Directly get the contract and function, assuming they exist
-        contract = boa.env.lookup_contract(address)
-        method_id = calldata[:4]
-        func = contract.method_id_map[method_id]
+        block += f" ├─ To: {action.address}\n"
+        block += f" ├─ Function: {action.function_name}\n"
+        outer_connector = "├" if action.xgov_calls else "└"
+        block += f" {outer_connector}─ Inputs: {_format_inputs(action)}\n"
 
-        # Directly decode arguments, assuming it will succeed
-        arg_data = calldata[4:]
-        decoded_inputs = abi_decode(func.signature, arg_data)
+        for index, xgov_call in enumerate(action.xgov_calls):
+            connector = "└" if index == len(action.xgov_calls) - 1 else "├"
+            chain_name = action.xgov_chain_name or f"Chain {action.xgov_chain_id}"
+            block += (
+                f" {connector}─ XGov call to {xgov_call.address} "
+                f"on {chain_name} ({action.xgov_chain_id})\n"
+            )
+            branch = "   " if connector == "└" else " │ "
+            block += f" {branch}├─ Function: {xgov_call.function_name}\n"
+            block += f" {branch}└─ Inputs: {_format_inputs(xgov_call)}\n"
 
-        # Format the decoded inputs into a readable string
-        inputs_list = [
-            f"('{abi_input['type']}', '{abi_input['name']}', '{_format_value(value)}')"
-            for abi_input, value in zip(func._abi['inputs'], decoded_inputs)
-        ]
-        inputs_str = f"[{', '.join(inputs_list)}]"
-        
-        # Build the preview block for this action
-        block += f" ├─ To: {address}\n"
-        block += f" ├─ Function: {func.name}\n"
-        block += f" └─ Inputs: {inputs_str}\n"
         preview_blocks.append(block)
 
     # Join each action's preview block with a newline for clear separation
@@ -229,8 +316,7 @@ def vote(
     after the `with` block).
 
     Inside the `with` block, any call to a mutable function on an
-    ABIContract will have its calldata captured. The payload is
-    stored as a list of [target_address, calldata] pairs.
+    ABIContract will have its calldata and decoded preview metadata captured.
     """
     # TODO forbid ops like deploying contracts inside to keep the vote clean
 
@@ -241,7 +327,14 @@ def vote(
             calldata = self.prepare_calldata(*args, **kwargs)
         if self.is_mutable:
             contract_address = str(self.contract.address)
-            captured_actions.append([contract_address, calldata])
+            action = _capture_call(self, calldata)
+            assert action.address == contract_address
+
+            xgov_preview = get_xgov_preview()
+            if xgov_preview is not None:
+                xgov_preview.attach(action)
+
+            captured_actions.append(action)
         return calldata
 
     with ExitStack() as stack:
@@ -279,6 +372,7 @@ def xvote(
     """
 
     messages = []
+    captured_calls = []
 
     def _patched_prepare_calldata(self, *args, **kwargs):
         with use_clean_prepare_calldata():
@@ -286,6 +380,7 @@ def xvote(
         if self.is_mutable:
             contract_address = str(self.contract.address)
             messages.append((contract_address, calldata))
+            captured_calls.append(_capture_call(self, calldata))
         return calldata  # calldata is prepared, but I need gas_used available after execution
 
     fork_params = {"url": rpc, "allow_dirty": True}
@@ -300,8 +395,10 @@ def xvote(
         stack.enter_context(use_prepare_calldata(_patched_prepare_calldata))
 
         yield
-    # TODO: how to represent xgov votes?
-    chain.broadcast(dao_params, fork_params, messages, broadcaster_parameters)
+    xgov_preview = _XGovPreview(chain, captured_calls)
+    with use_xgov_preview(xgov_preview):
+        chain.broadcast(dao_params, fork_params, messages, broadcaster_parameters)
+    xgov_preview.assert_complete()
 
 
 @contextmanager

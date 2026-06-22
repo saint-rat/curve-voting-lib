@@ -5,6 +5,7 @@ from boa.contracts.abi.abi_contract import ABIFunction
 from voting.config import DAOParameters
 
 _dao = None
+_xgov_preview = None
 _clean_prepare_calldata = ABIFunction.prepare_calldata
 
 
@@ -22,6 +23,21 @@ def use_dao(dao: DAOParameters):
 def get_dao() -> DAOParameters:
     assert _dao, "No DAO set"
     return _dao
+
+
+@contextmanager
+def use_xgov_preview(preview):
+    global _xgov_preview
+    assert _xgov_preview is None, "XGov preview is already set"
+    _xgov_preview = preview
+    try:
+        yield
+    finally:
+        _xgov_preview = None
+
+
+def get_xgov_preview():
+    return _xgov_preview
 
 
 @contextmanager

@@ -17,6 +17,7 @@ class Chain:
     rpc: str
     broadcaster: bd.BaseBroadcaster
     relayer: str
+    name: str = ""
 
     def agent_address(self, dao_agent: DAOParameters) -> str:
         return self.broadcaster.agent_address(self, dao_agent)
@@ -33,6 +34,7 @@ class Chain:
 
 GNOSIS = Chain(
     id=100,
+    name="Gnosis",
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
@@ -40,6 +42,7 @@ GNOSIS = Chain(
 
 CORN = Chain(
     id=1001,
+    name="Corn",
     rpc="https://maizenet-rpc.usecorn.com",
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
@@ -47,6 +50,7 @@ CORN = Chain(
 
 INK = Chain(
     id=200,
+    name="Ink",
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
@@ -54,6 +58,7 @@ INK = Chain(
 
 TAC = Chain(
     id=2008,
+    name="TAC",
     rpc="https://rpc.tac.build",
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
@@ -61,6 +66,7 @@ TAC = Chain(
 
 FANTOM = Chain(
     id=250,
+    name="Fantom",
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
@@ -68,6 +74,7 @@ FANTOM = Chain(
 
 POLYGON = Chain(
     id=137,
+    name="Polygon",
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
@@ -75,6 +82,7 @@ POLYGON = Chain(
 
 SONIC = Chain(
     id=146,
+    name="Sonic",
     rpc="https://rpc.soniclabs.com",
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0xE5De15A9C9bBedb4F5EC13B131E61245f2983A69",
@@ -82,6 +90,7 @@ SONIC = Chain(
 
 XDC = Chain(
     id=50,
+    name="XDC",
     rpc="https://rpc.xdc.org",
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
@@ -89,6 +98,7 @@ XDC = Chain(
 
 BSC = Chain(
     id=56,
+    name="BSC",
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
@@ -96,6 +106,7 @@ BSC = Chain(
 
 MOONBEAM = Chain(
     id=1284,
+    name="Moonbeam",
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
@@ -103,6 +114,7 @@ MOONBEAM = Chain(
 
 HYPERLIQUID = Chain(
     id=998,
+    name="Hyperliquid",
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
@@ -110,6 +122,7 @@ HYPERLIQUID = Chain(
 
 KAVA = Chain(
     id=2222,
+    name="Kava",
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
@@ -117,6 +130,7 @@ KAVA = Chain(
 
 CELO = Chain(
     id=42220,
+    name="Celo",
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
@@ -124,6 +138,7 @@ CELO = Chain(
 
 ETHERLINK = Chain(
     id=42793,
+    name="Etherlink",
     rpc="https://node.mainnet.etherlink.com",
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
@@ -131,6 +146,7 @@ ETHERLINK = Chain(
 
 AVALANCHE = Chain(
     id=43114,
+    name="Avalanche",
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
@@ -138,6 +154,7 @@ AVALANCHE = Chain(
 
 AURORA = Chain(
     id=1313161554,
+    name="Aurora",
     rpc=RPC_NOT_SET,
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
@@ -145,6 +162,7 @@ AURORA = Chain(
 
 PLUME = Chain(
     id=161221135,
+    name="Plume",
     rpc="https://rpc.plume.org",
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
@@ -152,6 +170,7 @@ PLUME = Chain(
 
 PLASMA = Chain(
     id=9745,
+    name="Plasma",
     rpc="https://rpc.plasma.to",
     broadcaster=bd.STORAGE_PROOFS,
     relayer="0x900e54EAfE5f05683907a22A0f532D5C25302E1E",
@@ -160,6 +179,7 @@ PLASMA = Chain(
 
 OPTIMISM = Chain(
     id=10,
+    name="Optimism",
     rpc="https://mainnet.optimism.io",
     broadcaster=bd.OPTIMISM_MAINNET,
     relayer="0x8e1e5001C7B8920196c7E3EdF2BCf47B2B6153ff",
@@ -167,6 +187,7 @@ OPTIMISM = Chain(
 
 FRAXTAL = Chain(
     id=252,
+    name="Fraxtal",
     rpc="https://rpc.frax.com",
     broadcaster=bd.OPTIMISM_GENERIC,
     relayer="0x7BE6BD57A319A7180f71552E58c9d32Da32b6f96",
@@ -174,6 +195,7 @@ FRAXTAL = Chain(
 
 MANTLE = Chain(
     id=5000,
+    name="Mantle",
     rpc=RPC_NOT_SET,
     broadcaster=bd.MANTLE,
     relayer="0xB50B9a0D8A4ED8115Fe174F300465Ea4686d86Df",
@@ -181,6 +203,7 @@ MANTLE = Chain(
 
 BASE = Chain(
     id=8453,
+    name="Base",
     rpc=RPC_NOT_SET,
     broadcaster=bd.BASE,
     relayer="0xCb843280C5037ACfA67b8D4aDC71484ceD7C48C9",
@@ -189,6 +212,7 @@ BASE = Chain(
 
 ARBITRUM = Chain(
     id=42161,
+    name="Arbitrum",
     rpc="https://arb1.arbitrum.io/rpc",
     broadcaster=bd.ARBITRUM,
     relayer="0xb7b0FF38E0A01D798B5cd395BbA6Ddb56A323830",
@@ -197,6 +221,7 @@ ARBITRUM = Chain(
 
 X_LAYER = Chain(
     id=196,
+    name="X Layer",
     rpc="https://rpc.xlayer.tech",
     broadcaster=bd.POLYGON_ZKEVM_X_LAYER,
     relayer="0x9D9e70CA10fE911Dee9869F21e5ebB24A9519Ade",
@@ -205,6 +230,7 @@ X_LAYER = Chain(
 
 TAIKO = Chain(
     id=167000,
+    name="Taiko",
     rpc="https://rpc.taiko.xyz",
     broadcaster=bd.TAIKO_GENERIC,
     relayer="0xE5De15A9C9bBedb4F5EC13B131E61245f2983A69",
