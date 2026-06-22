@@ -173,31 +173,36 @@ def _pin_to_ipfs(description: str) -> str:
         logger.info(f"Found cached IPFS hash for description.")
         return f"ipfs:{ipfs_hash}"
 
-    pinata_token = os.getenv("PINATA_JWT")
-    if not pinata_token:
-        raise ValueError("PINATA_JWT environment variable is required")
+    filebase_token = os.getenv("FILEBASE_RPC_TOKEN")
+    if not filebase_token:
+        raise ValueError("FILEBASE_RPC_TOKEN environment variable is required")
 
-    # TODO this is a legacy endpoint and should be updated before it breaks
-    url = "https://api.pinata.cloud/pinning/pinJSONToIPFS"
+    url = "https://rpc.filebase.io/api/v0/add"
     headers = {
-        "Authorization": f"Bearer {pinata_token}",
-        "Content-Type": "application/json",
+        "Authorization": f"Bearer {filebase_token}",
     }
-    payload = {
-        "pinataContent": {"text": description},
-        "pinataMetadata": {"name": f"vote_description_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"},
-        "pinataOptions": {"cidVersion": 1},
+    filename = f"vote_description_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    file_content = json.dumps({"text": description}, ensure_ascii=False).encode("utf-8")
+    files = {
+        "file": (filename, file_content, "application/json"),
     }
 
-    response = request("POST", url, json=payload, headers=headers)
+    response = request(
+        "POST",
+        url,
+        params={"cid-version": 1},
+        files=files,
+        headers=headers,
+        timeout=30,
+    )
 
     if not (200 <= response.status_code < 400):
         logger.error(f"IPFS pinning failed with status {response.status_code}: {response.text}")
         raise Exception(f"Failed to pin to IPFS: HTTP {response.status_code}")
-    
+
     response_data = response.json()
-    ipfs_hash = response_data["IpfsHash"]
-    logger.info(f"Successfully pinned vote description to IPFS: {ipfs_hash}")
+    ipfs_hash = response_data["Hash"]
+    logger.info(f"Successfully pinned vote description to IPFS via Filebase: {ipfs_hash}")
     
     # Cache the result
     cache[description_hash] = ipfs_hash

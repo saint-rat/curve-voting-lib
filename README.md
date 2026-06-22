@@ -8,7 +8,7 @@ A Python package for creating and simulating Curve DAO governance votes.
 
 - **Context Manager Voting:** Use `vote()` context manager to automatically capture contract interactions
 - **Simulation & Live Voting:** Fork mainnet for testing or create actual governance proposals
-- **IPFS Integration:** Automatic vote description pinning via Pinata
+- **IPFS Integration:** Automatic vote description pinning via Filebase
 
 ---
 
@@ -29,7 +29,7 @@ Set environment variables:
 
 ```env
 RPC_URL=your_rpc_url
-PINATA_JWT=your_pinata_jwt_token
+FILEBASE_RPC_TOKEN=your_bucket_specific_filebase_rpc_token
 ```
 
 ---
